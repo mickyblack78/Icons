@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Icon Studio</title>
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Neon%20Icon%20Studio%22,%22short_name%22:%22IconStudio%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#121212%22,%22theme_color%22:%22#121212%22}">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #121212; color: #e0e0e0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        h2 { font-size: 1.2rem; margin-bottom: 15px; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; }
+        
+        /* Sandbox Workspace Layout */
+        .workspace { display: flex; flex-wrap: wrap; gap: 15px; width: 100%; max-width: 500px; justify-content: center; margin-bottom: 20px; }
+        
+        /* Live Icon Container */
+        .preview-box { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; width: 160px; height: 160px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        #iconPreview { position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background-size: cover; background-position: center; transition: all 0.1s ease; }
+        #iconText { position: absolute; text-align: center; width: 90%; word-break: break-word; pointer-events: none; line-height: 1.1; }
+
+        /* Saved Library Sandbox */
+        .library-box { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; flex: 1; min-width: 200px; height: 160px; padding: 10px; display: flex; flex-direction: column; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 8px; overflow-y: auto; flex-grow: 1; padding-top: 5px; }
+        .saved-item { width: 45px; height: 45px; border-radius: 8px; background-size: cover; background-position: center; cursor: pointer; position: relative; border: 1px solid #444; }
+
+        /* Long Press Context Overlay */
+        .context-menu { display: none; position: fixed; background: #222; border: 1px solid #444; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1000; width: 140px; }
+        .context-menu button { background: none; border: none; color: white; width: 100%; padding: 10px 12px; text-align: left; font-size: 0.9rem; cursor: pointer; }
+        .context-menu button:not(:last-child) { border-bottom: 1px solid #333; }
+        .context-menu button:hover { background: #333; }
+
+        /* Editing Suite Panel */
+        .control-panel { background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 16px; width: 100%; max-width: 500px; padding: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .control-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.8rem; color: #aaa; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+        .input-row { display: flex; gap: 8px; align-items: center; }
+        input[type="text"] { background: #2b2b2b; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 8px; flex-grow: 1; font-size: 0.9rem; }
+        input[type="range"] { flex-grow: 1; accent-color: #00ffcc; height: 6px; border-radius: 3px; }
+        input[type="color"] { background: none; border: none; width: 35px; height: 35px; cursor: pointer; }
+        select { background: #2b2b2b; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 0.9rem; width: 100%; }
+        
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        button.main-btn { background: #00ffcc; color: #121212; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: opacity 0.2s; text-transform: uppercase; }
+        button.sec-btn { background: #2b2b2b; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; }
+        button:active { opacity: 0.8; }
+        .file-label { background: #333; color: white; padding: 8px 12px; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.85rem; display: inline-block; width: 100%; text-transform: uppercase; border: 1px dashed #555; }
+    </style>
+</head>
+<body>
+
+    <h2>Neon Icon Studio</h2>
+
+    <!-- Workspace Sandbox -->
+    <div class="workspace">
+        <div class="preview-box">
+            <div id="iconPreview">
+                <div id="iconText"></div>
+            </div>
+        </div>
+        <div class="library-box">
+            <label>Saved In Browser (Hold to Options)</label>
+            <div class="grid-container" id="savedGrid"></div>
+        </div>
+    </div>
+
+    <!-- Long Press Menu -->
+    <div class="context-menu" id="ctxMenu">
+        <button onclick="loadSelected()">Edit / Load</button>
+        <button onclick="downloadSelected()">Save to Device</button>
+        <button onclick="deleteSelected()" style="color: #ff5555;">Delete</button>
+    </div>
+
+    <!-- Control Suite -->
+    <div class="control-panel">
+        <div class="control-group">
+            <label>1. Source Image</label>
+            <label class="file-label">Choose Picture<input type="file" id="imageInput" accept="image/*" style="display:none;"></label>
+        </div>
+
+        <div class="control-group">
+            <label>2. Shortcut Name</label>
+            <input type="text" id="nameInput" placeholder="e.g., CommBank" value="My Icon">
+        </div>
+
+        <div class="control-group">
+            <label>3. Shape & Size</label>
+            <div class="input-row"><span style="font-size:0.75rem;width:35px;">Size</span><input type="range" id="sizeSlider" min="50" max="140" value="100"></div>
+            <div class="input-row"><span style="font-size:0.75rem;width:35px;">Shape</span><input type="range" id="radiusSlider" min="0" max="50" value="20"></div>
+        </div>
+
+        <div class="control-group">
+            <label>4. Neon Glowing Border</label>
+            <div class="input-row">
+                <span style="font-size:0.75rem;width:35px;">Thick</span><input type="range" id="borderSlider" min="0" max="12" value="4">
+                <input type="color" id="borderColor" value="#00ffcc">
+            </div>
+            <div class="input-row" style="margin-top:5px;">
+                <span style="font-size:0.75rem;width:35px;">Glow</span><input type="range" id="glowSlider" min="0" max="25" value="12">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>5. Label Styling</label>
+            <div class="input-row">
+                <input type="text" id="labelTextInput" placeholder="Text Overlay" value="$">
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+            <div class="input-row" style="margin-top:5px;">
+                <span style="font-size:0.75rem;width:35px;">Scale</span><input type="range" id="textSizeSlider" min="10" max="60" value="32">
+                <select id="textPosition" style="width:100px; margin-left:10px;">
+                    <option value="center">Center</option>
+                    <option value="bottom">Bottom</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="btn-grid">
+            <button class="sec-btn" onclick="saveToBrowser()">Save Browser</button>
+            <button class="main-btn" onclick="exportToDevice()">Export PNG</button>
+        </div>
+    </div>
+
+    <!-- Hidden Canvas used for high-res rendering -->
+    <canvas id="renderCanvas" width="512" height="512" style="display:none;"></canvas>
+
+    <script>
+        let db;
+        let selectedId = null;
+        let currentImgData = "";
+        let longPressTimer;
+
+        // Initialize Local IndexedDB Storage
+        const request = indexedDB.open("NeonIconStorage", 1);
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            db.createObjectStore("icons", { keyPath: "id", autoIncrement: true });
+        };
+        request.onsuccess = (e) => { db = e.target.result; renderGrid(); };
+
+        // DOM Selections
+        const preview = document.getElementById('iconPreview');
+        const txtOverlay = document.getElementById('iconText');
+
+        // Realtime Preview Sync Setup
+        function updatePreview() {
+            const size = document.getElementById('sizeSlider').value;
+            const radius = document.getElementById('radiusSlider').value;
+            const bWidth = document.getElementById('borderSlider').value;
+            const bColor = document.getElementById('borderColor').value;
+            const glow = document.getElementById('glowSlider').value;
+            const text = document.getElementById('labelTextInput').value;
+            const tColor = document.getElementById('textColor').value;
+            const tSize = document.getElementById('textSizeSlider').value;
+            const tPos = document.getElementById('textPosition').value;
+
+            preview.style.width = `${size}px`;
+            preview.style.height = `${size}px`;
+            preview.style.borderRadius = `${radius}%`;
+            preview.style.border = bWidth > 0 ? `${bWidth}px solid ${bColor}` : 'none';
+            preview.style.boxShadow = glow > 0 ? `0 0 ${glow}px ${bColor}, inset 0 0 ${glow/2}px ${bColor}` : 'none';
+            preview.style.backgroundImage = currentImgData ? `url(${currentImgData})` : 'none';
+            if(!currentImgData) preview.style.backgroundColor = '#222';
+
+            txtOverlay.innerText = text;
+            txtOverlay.style.color = tColor;
+            txtOverlay.style.fontSize = `${tSize}px`;
+            
+            if(tPos === 'center') {
+                txtOverlay.style.bottom = 'auto';
+                txtOverlay.style.top = '50%';
+                txtOverlay.style.transform = 'translateY(-50%)';
+            } else {
+                txtOverlay.style.top = 'auto';
+                txtOverlay.style.bottom = '8px';
+                txtOverlay.style.transform = 'none';
+            }
+        }
+
+        // Event Binding for Realtime Controls
+        document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', updatePreview));
+
+        // File Parsing
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                currentImgData = event.target.result;
+                updatePreview();
+            };
+            if(e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // IndexedDB Transactions
+        function saveToBrowser() {
+            const tx = db.transaction("icons", "readwrite");
+            const store = tx.objectStore("icons");
+            const iconObj = {
+                name: document.getElementById('nameInput').value,
+                size: document.getElementById('sizeSlider').value,
+                radius: document.getElementById('radiusSlider').value,
+                bWidth: document.getElementById('borderSlider').value,
+                bColor: document.getElementById('borderColor').value,
+                glow: document.getElementById('glowSlider').value,
+                text: document.getElementById('labelTextInput').value,
+                tColor: document.getElementById('textColor').value,
+                tSize: document.getElementById('textSizeSlider').value,
+                tPos: document.getElementById('textPosition').value,
+                img: currentImgData
+            };
+            if(selectedId) iconObj.id = selectedId;
+            store.put(iconObj);
+            tx.oncomplete = () => { selectedId = null; renderGrid(); };
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('savedGrid');
+            container.innerHTML = "";
+            const tx = db.transaction("icons", "readonly");
+            tx.objectStore("icons").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if(cursor) {
+                    const item = document.createElement('div');
+                    item.className = 'saved-item';
+                    item.style.borderRadius = `${cursor.value.radius}%`;
+                    item.style.border = `2px solid ${cursor.value.bColor}`;
+                    if(cursor.value.img) item.style.backgroundImage = `url(${cursor.value.img})`;
+                    
+                    // Setup Touch Mechanics for Mobile Integration
+                    const id = cursor.value.id;
+                    item.addEventListener('touchstart', (ev) => handleTouchStart(ev, id));
+                    item.addEventListener('touchend', handleTouchEnd);
+                    item.addEventListener('mousedown', (ev) => handleMouseDown(ev, id));
+                    item.addEventListener('mouseup', handleTouchEnd);
+
+                    container.appendChild(item);
+                    cursor.continue();
+                }
+            };
+        }
+
+        // Input Modality Handling (Mobile Long Press Logic)
+        function handleTouchStart(e, id) {
+            selectedId = id;
+            longPressTimer = setTimeout(() => showMenu(e), 600);
+        }
+        function handleMouseDown(e, id) {
+            if(e.button !== 0) return;
+            selectedId = id;
+            longPressTimer = setTimeout(() => showMenu(e), 600);
+        }
+        function handleTouchEnd() { clearTimeout(longPressTimer); }
+
+        function showMenu(e) {
+            e.preventDefault();
+            const menu = document.getElementById('ctxMenu');
+            menu.style.display = 'block';
+            const pageX = e.touches ? e.touches[0].clientX : e.clientX;
+            const pageY = e.touches ? e.touches[0].clientY : e.clientY;
+            menu.style.left = `${Math.min(pageX, window.innerWidth - 150)}px`;
+            menu.style.top = `${Math.min(pageY, window.innerHeight - 150)}px`;
+        }
+
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('.context-menu') && !e.target.closest('.saved-item')) {
+                document.getElementById('ctxMenu').style.display = 'none';
+            }
+        });
+
+        function loadSelected() {
+            const tx = db.transaction("icons", "readonly");
+            tx.objectStore("icons").get(selectedId).onsuccess = (e) => {
+                const data = e.target.result;
+                document.getElementById('nameInput').value = data.name;
+                document.getElementById('sizeSlider').value = data.size;
+                document.getElementById('radiusSlider').value = data.radius;
+                document.getElementById('borderSlider').value = data.bWidth;
+                document.getElementById('borderColor').value = data.bColor;
+                document.getElementById('glowSlider').value = data.glow;
+                document.getElementById('labelTextInput').value = data.text;
+                document.getElementById('textColor').value = data.tColor;
+                document.getElementById('textSizeSlider').value = data.tSize;
+                document.getElementById('textPosition').value = data.tPos;
+                currentImgData = data.img;
+                updatePreview();
+                document.getElementById('ctxMenu').style.display = 'none';
+            };
+        }
+
+        function deleteSelected() {
+            const tx = db.transaction("icons", "readwrite");
+            tx.objectStore("icons").delete(selectedId);
+            tx.oncomplete = () => { selectedId = null; renderGrid(); document.getElementById('ctxMenu').style.display = 'none'; };
+        }
+
+        // Canvas Graphic Engine for Clean Device Exports
+        function generateCanvas(callback) {
+            const canvas = document.getElementById('renderCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 512, 512);
+
+            const radiusPct = document.getElementById('radiusSlider').value / 100;
+            const bWidth = parseInt(document.getElementById('borderSlider').value) * 3.2; // Scale factor for 512px
+            const bColor = document.getElementById('borderColor').value;
+            const glow = parseInt(document.getElementById('glowSlider').value) * 2;
+            const text = document.getElementById('labelTextInput').value;
+            const tColor = document.getElementById('textColor').value;
+            const tSize = parseInt(document.getElementById('textSizeSlider').value) * 3.2;
+            const tPos = document.getElementById('textPosition').value;
+
+            // Define Clip boundaries
+            const pad = glow + bWidth; 
+            const boxSize = 512 - (pad * 2);
+            
+            ctx.save();
+            // Draw path based on geometric curvature bounds
+            ctx.beginPath();
+            const r = boxSize * (radiusPct * 0.5);
+            const x = pad, y = pad, w = boxSize, h = boxSize;
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+
+            // Handle Glow Profile Setup
+            if(glow > 0) {
+                ctx.shadowColor = bColor;
+                ctx.shadowBlur = glow;
+            }
+
+            if(bWidth > 0) {
+                ctx.strokeStyle = bColor;
+                ctx.lineWidth = bWidth;
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0; // Clear shadow layer for image draw
+            ctx.clip();
+
+            const drawTextAndFinish = () => {
+                if (text) {
+                    ctx.fillStyle = tColor;
+                    ctx.font = `bold ${tSize}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    if (tPos === 'center') {
+                        ctx.fillText(text, 256, 256);
+                    } else {
+                        ctx.fillText(text, 256, 512 - pad - (tSize * 0.6));
+                    }
+                }
+                ctx.restore();
+                callback(canvas.toDataURL("image/png"));
+            };
+
+            if (currentImgData) {
+                const img = new Image();
+                img.onload = function() {
+                    // Perfect dynamic center crop matching
+                    const hRatio = boxSize / img.width;
+                    const vRatio = boxSize / img.height;
+                    const ratio = Math.max(hRatio, vRatio);
+                    const centerShift_x = (boxSize - img.width * ratio) / 2;
+                    const centerShift_y = (boxSize - img.height * ratio) / 2;  
+                    ctx.drawImage(img, 0, 0, img.width, img.height, x + centerShift_x, y + centerShift_y, img.width * ratio, img.height * ratio);
+                    drawTextAndFinish();
+                };
+                img.src = currentImgData;
+            } else {
+                ctx.fillStyle = "#222";
+                ctx.fill();
+                drawTextAndFinish();
+            }
+        }
+
+        function exportToDevice() {
+            generateCanvas((dataUrl) => {
+                const name = document.getElementById('nameInput').value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                const link = document.createElement('a');
+                link.download = `${name || 'icon'}_neon.png`;
+                link.href = dataUrl;
+                link.click();
+            });
+        }
+
+        function downloadSelected() {
+            loadSelected();
+            setTimeout(exportToDevice, 100);
+            document.getElementById('ctxMenu').style.display = 'none';
+        }
+
+        // Initialize empty state
+        updatePreview();
+    </script>
+</body>
+</html>
