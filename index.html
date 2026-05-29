@@ -373,13 +373,23 @@
         }
 
         function exportToDevice() {
-            generateCanvas((dataUrl) => {
-                const name = document.getElementById('nameInput').value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                const link = document.createElement('a');
-                link.download = `${name || 'icon'}_neon.png`;
-                link.href = dataUrl;
-                link.click();
-            });
+    // 1. Ask for the name FIRST before the browser tries to download anything
+    const defaultName = document.getElementById('nameInput').value;
+    const userChosenName = prompt("Enter a filename for your image:", defaultName);
+    
+    // 2. If you hit cancel, drop out immediately and do nothing
+    if (userChosenName === null) return;
+    
+    // 3. Clean up the typed name so it doesn't have illegal file characters
+    const cleanName = userChosenName.replace(/[^a-z0-9 _-]/gi, '').trim().toLowerCase();
+
+    // 4. Now run the canvas engine and pass the clean name into it
+    generateCanvas((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `${cleanName || 'icon'}_neon.png`;
+        link.href = dataUrl;
+        link.click();
+    });
         }
 
         function downloadSelected() {
