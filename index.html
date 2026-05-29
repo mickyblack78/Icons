@@ -307,7 +307,8 @@
             const tPos = document.getElementById('textPosition').value;
 
             // Define Clip boundaries
-            const pad = glow + bWidth; 
+            const pad = Math.max(glow, bWidth); 
+            const boxSize = 512 - (pad * 2);
             const boxSize = 512 - (pad * 2);
             
             ctx.save();
