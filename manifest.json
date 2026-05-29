@@ -1,6 +1,6 @@
 {
-  "name": "MY DASHBOARD",
-  "short_name": "Dashboard",
+  "name": "Icons",
+  "short_name": "Iconic",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#121212",
