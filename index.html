@@ -389,7 +389,7 @@
     // 4. Now run the canvas engine and pass the clean name into it
     generateCanvas((dataUrl) => {
         const link = document.createElement('a');
-        link.download = `${cleanName || 'icon'}_neon.png`;
+        link.download = `${cleanName || 'icon'}.png`;
         link.href = dataUrl;
         link.click();
     });
