@@ -301,9 +301,9 @@
             ctx.clearRect(0, 0, 512, 512);
 
             const radiusPct = document.getElementById('radiusSlider').value / 100;
-            const bWidth = parseInt(document.getElementById('borderSlider').value) * 3.2; // Scale factor for 512px
+            const bWidth = parseInt(document.getElementById('borderSlider').value) * 0.1; // Scale factor for 512px
             const bColor = document.getElementById('borderColor').value;
-            const glow = parseInt(document.getElementById('glowSlider').value) * 2;
+            const glow = parseInt(document.getElementById('glowSlider').value) * 0.2;
             const text = document.getElementById('labelTextInput').value;
             const tColor = document.getElementById('textColor').value;
             const tSize = parseInt(document.getElementById('textSizeSlider').value) * 3.2;
